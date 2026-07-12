@@ -1,0 +1,27 @@
+{
+  "name": "expense-tracker",
+  "version": "1.0.0",
+  "description": "expense tracker",
+  "homepage": "https://github.com/Ayushee-Seeburrun/expense-tracker#readme",
+  "bugs": {
+    "url": "https://github.com/Ayushee-Seeburrun/expense-tracker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ayushee-Seeburrun/expense-tracker.git"
+  },
+  "license": "ISC",
+  "author": "Ayushee",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "dependencies": {
+    "body-parser": "^2.3.0",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "react": "^19.2.7"
+  }
+}
