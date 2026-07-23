@@ -51,6 +51,10 @@ function isValidDateFormat(date) {
   return /^\d{4}-\d{2}-\d{2}$/.test(date); //regex to check if the date is in the YYYY-MM-DD format
 }
 
+function isValidMonthFormat(month) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+}
+
 //res -> used to send something back to the client,   req -> contains information sent by the client
 app.get("/api/persons", async (req, res) => {
   try {
@@ -65,7 +69,66 @@ app.get("/api/persons", async (req, res) => {
 app.get("/api/expenses", async (req, res) => {
   try {
     const { expenses } = await readExpenseData();
-    res.status(200).json(expenses);
+    const { personId, category, month, from, to } = req.query;
+
+    if (month && !isValidMonthFormat(month)) {
+      return res.status(400).json({
+        message: "Month must use the YYYY-MM format",
+      });
+    }
+
+    if (from && !isValidDateFormat(from)) {
+      return res.status(400).json({
+        message: "From date must use the YYYY-MM-DD format",
+      });
+    }
+
+    if (to && !isValidDateFormat(to)) {
+      return res.status(400).json({
+        message: "To date must use the YYYY-MM-DD format",
+      });
+    }
+
+    if (from && to && from > to) {
+      return res.status(400).json({
+        message: "From date cannot be later than to date",
+      });
+    }
+
+    let filteredExpenses = expenses;
+
+    if (personId) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.personId === personId,
+      );
+    }
+
+    if (category) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) =>
+          expense.category.toLowerCase() === category.toLowerCase(),
+      );
+    }
+
+    if (month) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.date.startsWith(month),
+      );
+    }
+
+    if (from) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.date >= from,
+      );
+    }
+
+    if (to) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.date <= to,
+      );
+    }
+
+    res.status(200).json(filteredExpenses);
   } catch (error) {
     console.error("Could not read expenses:", error);
     res.status(500).json({ message: "Could not retrieve expenses" });
