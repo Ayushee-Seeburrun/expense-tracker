@@ -58,6 +58,51 @@ function isValidMonthFormat(month) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+function buildExpenseSummary(expenses) {
+  const totalAmount = expenses.reduce(
+    (total, expense) => total + expense.amount,
+    0,
+  );
+
+  const categoryTotalsMap = expenses.reduce((totals, expense) => {
+    totals[expense.category] =
+      (totals[expense.category] || 0) + expense.amount;
+    return totals;
+  }, {});
+
+  const monthlyTotalsMap = expenses.reduce((totals, expense) => {
+    const month = expense.date.slice(0, 7);
+    totals[month] = (totals[month] || 0) + expense.amount;
+    return totals;
+  }, {});
+
+  const categoryTotals = Object.entries(categoryTotalsMap)
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const monthlyTotals = Object.entries(monthlyTotalsMap)
+    .map(([month, amount]) => ({ month, amount }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  const highestExpense = expenses.length
+    ? expenses.reduce((highest, expense) =>
+        expense.amount > highest.amount ? expense : highest,
+      )
+    : null;
+
+  return {
+    expenseCount: expenses.length,
+    totalAmount,
+    averageAmount: expenses.length
+      ? Number((totalAmount / expenses.length).toFixed(2))
+      : 0,
+    highestExpense,
+    highestCategory: categoryTotals[0] || null,
+    categoryTotals,
+    monthlyTotals,
+  };
+}
+
 
 //res -> used to send something back to the client,   req -> contains information sent by the client
 app.get("/api/persons", async (req, res) => {
