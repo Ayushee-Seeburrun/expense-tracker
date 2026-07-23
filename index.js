@@ -13,6 +13,9 @@ const expenseFields = [
   "paymentMethod",
 ];
 
+//can sort expenses by these fields, if other fields used in query parameter it will return an error message
+const sortableExpenseFields = ["id", "date", "amount", "category", "description"];
+
 app.use(express.json());        //allows express to parse incoming JSON requests
 
 async function readExpenseData() {
@@ -55,6 +58,7 @@ function isValidMonthFormat(month) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+
 //res -> used to send something back to the client,   req -> contains information sent by the client
 app.get("/api/persons", async (req, res) => {
   try {
@@ -69,7 +73,17 @@ app.get("/api/persons", async (req, res) => {
 app.get("/api/expenses", async (req, res) => {
   try {
     const { expenses } = await readExpenseData();
-    const { personId, category, month, from, to } = req.query;
+    const {
+      personId,
+      category,
+      month,
+      from,
+      to,
+      sort = "date",
+      order = "desc",
+      page = "1",
+      limit = "20",
+    } = req.query;
 
     if (month && !isValidMonthFormat(month)) {
       return res.status(400).json({
@@ -92,6 +106,37 @@ app.get("/api/expenses", async (req, res) => {
     if (from && to && from > to) {
       return res.status(400).json({
         message: "From date cannot be later than to date",
+      });
+    }
+
+    if (!sortableExpenseFields.includes(sort)) {
+      return res.status(400).json({
+        message: `Sort must be one of: ${sortableExpenseFields.join(", ")}`,
+      });
+    }
+
+    if (order !== "asc" && order !== "desc") {
+      return res.status(400).json({
+        message: "Order must be asc or desc",
+      });
+    }
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+      return res.status(400).json({
+        message: "Page must be a positive whole number",
+      });
+    }
+
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1 ||
+      limitNumber > 100
+    ) {
+      return res.status(400).json({
+        message: "Limit must be a whole number between 1 and 100",
       });
     }
 
@@ -128,7 +173,41 @@ app.get("/api/expenses", async (req, res) => {
       );
     }
 
-    res.status(200).json(filteredExpenses);
+    const sortedExpenses = [...filteredExpenses].sort((first, second) => {
+      let comparison;
+
+      if (sort === "amount") {
+        comparison = first.amount - second.amount;
+      } else {
+        comparison = String(first[sort]).localeCompare(String(second[sort]));
+      }
+
+      return order === "desc" ? -comparison : comparison;
+    });
+
+    const totalItems = sortedExpenses.length;
+    const totalPages = Math.ceil(totalItems / limitNumber);
+    const startIndex = (pageNumber - 1) * limitNumber;
+    const paginatedExpenses = sortedExpenses.slice(
+      startIndex,
+      startIndex + limitNumber,
+    );
+
+    res.status(200).json({
+      data: paginatedExpenses,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        totalItems,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPreviousPage: pageNumber > 1,
+      },
+      sorting: {
+        field: sort,
+        order,
+      },
+    });
   } catch (error) {
     console.error("Could not read expenses:", error);
     res.status(500).json({ message: "Could not retrieve expenses" });
