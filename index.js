@@ -531,6 +531,34 @@ app.delete("/api/expenses/:id", async (req, res) => {
   }
 });
 
+app.get("/api/persons/:personId/summary", async (req, res) => {
+  try {
+    const { metadata, persons, expenses } = await readExpenseData();
+    const person = persons.find(
+      (item) => item.id === req.params.personId,
+    );
+
+    if (!person) {
+      return res.status(404).json({ message: "Person not found" });
+    }
+
+    const personExpenses = expenses.filter(
+      (expense) => expense.personId === req.params.personId,
+    );
+
+    res.status(200).json({
+      person,
+      currency: metadata.currency,
+      ...buildExpenseSummary(personExpenses),
+    });
+  } catch (error) {
+    console.error("Could not build person's expense summary:", error);
+    res.status(500).json({
+      message: "Could not retrieve person's expense summary",
+    });
+  }
+});
+
 app.get("/api/persons/:personId/expenses", async (req, res) => {
   try {
     const { persons, expenses } = await readExpenseData();
