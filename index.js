@@ -308,6 +308,27 @@ app.patch("/api/expenses/:id", async (req, res) => {
   }
 });
 
+app.delete("/api/expenses/:id", async (req, res) => {
+  try {
+    const data = await readExpenseData();
+    const expenseIndex = data.expenses.findIndex(
+      (expense) => expense.id === req.params.id,
+    );
+
+    if (expenseIndex === -1) {
+      return res.status(404).json({ message: "Expense not found" });
+    }
+
+    data.expenses.splice(expenseIndex, 1);
+    await writeExpenseData(data);
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Could not delete expense:", error);
+    res.status(500).json({ message: "Could not delete expense" });
+  }
+});
+
 app.get("/api/persons/:personId/expenses", async (req, res) => {
   try {
     const { persons, expenses } = await readExpenseData();
