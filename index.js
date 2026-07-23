@@ -127,7 +127,7 @@ app.get("/api/expenses", async (req, res) => {
       sort = "date",
       order = "desc",
       page = "1",
-      limit = "20",
+      limit = "20",   //controls how many expenses are belong to each page, default is 20. eg page 1 will have 1-20
     } = req.query;
 
     if (month && !isValidMonthFormat(month)) {
@@ -258,6 +258,21 @@ app.get("/api/expenses", async (req, res) => {
     res.status(500).json({ message: "Could not retrieve expenses" });
   }
 });
+
+app.get("/api/summary", async (req, res) => {
+  try {
+    const { metadata, expenses } = await readExpenseData();
+
+    res.status(200).json({
+      currency: metadata.currency,
+      ...buildExpenseSummary(expenses),
+    });
+  } catch (error) {
+    console.error("Could not build expense summary:", error);
+    res.status(500).json({ message: "Could not retrieve expense summary" });
+  }
+});
+
 
 app.post("/api/expenses", async (req, res) => {
   try {
